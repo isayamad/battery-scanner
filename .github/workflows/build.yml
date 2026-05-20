@@ -5,7 +5,6 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-# Force Node.js 24 to remove the deprecation warning
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -27,6 +26,9 @@ jobs:
           sudo apt update
           sudo apt install -y \
             openjdk-17-jdk \
+            git \
+            zip \
+            unzip \
             autoconf \
             libtool \
             pkg-config \
@@ -38,30 +40,27 @@ jobs:
             libffi-dev \
             libssl-dev
       
-      - name: Install Buildozer
+      - name: Install Buildozer and Cython
         run: |
           pip install --upgrade pip
-          pip install buildozer
           pip install cython
+          pip install buildozer
+      
+      - name: Create dummy icon (if missing)
+        run: |
+          if [ ! -f icon.png ]; then
+            python3 -c "from PIL import Image; Image.new('RGB', (512, 512), color='#1F78B4').save('icon.png')" 2>/dev/null || echo "Icon creation skipped"
+          fi
+          if [ ! -f presplash.png ]; then
+            python3 -c "from PIL import Image; Image.new('RGB', (1024, 1024), color='#1F78B4').save('presplash.png')" 2>/dev/null || echo "Presplash creation skipped"
+          fi
       
       - name: Build APK
         run: |
-          # Create dummy icon if missing
-          if [ ! -f icon.png ]; then
-            echo "Creating dummy icon..."
-            python3 -c "from PIL import Image; Image.new('RGB', (512, 512), color='#1F78B4').save('icon.png')" || true
-          fi
-          
-          if [ ! -f presplash.png ]; then
-            echo "Creating dummy presplash..."
-            python3 -c "from PIL import Image; Image.new('RGB', (1024, 1024), color='#1F78B4').save('presplash.png')" || true
-          fi
-          
-          # Build the APK with auto-yes
           echo "y" | buildozer android debug
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: battery-logger-apk
+          name: battery-scanner-apk
           path: bin/*.apk
