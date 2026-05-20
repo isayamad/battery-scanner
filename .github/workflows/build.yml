@@ -35,10 +35,17 @@ jobs:
             zlib1g-dev \
             libncurses5-dev \
             libncursesw5-dev \
-            libtinfo5 \
             cmake \
             libffi-dev \
             libssl-dev
+          
+          # libtinfo5 is not available in newer Ubuntu, use libtinfo6 instead
+          sudo apt install -y libtinfo6 || true
+          
+          # Alternative: create symlink if needed
+          if [ ! -f /usr/lib/x86_64-linux-gnu/libtinfo.so.5 ]; then
+            sudo ln -sf /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5 2>/dev/null || true
+          fi
       
       - name: Install Buildozer and Cython
         run: |
@@ -46,14 +53,10 @@ jobs:
           pip install cython
           pip install buildozer
       
-      - name: Create dummy icon (if missing)
+      - name: Create dummy icons
         run: |
-          if [ ! -f icon.png ]; then
-            python3 -c "from PIL import Image; Image.new('RGB', (512, 512), color='#1F78B4').save('icon.png')" 2>/dev/null || echo "Icon creation skipped"
-          fi
-          if [ ! -f presplash.png ]; then
-            python3 -c "from PIL import Image; Image.new('RGB', (1024, 1024), color='#1F78B4').save('presplash.png')" 2>/dev/null || echo "Presplash creation skipped"
-          fi
+          python3 -c "from PIL import Image; Image.new('RGB', (512, 512), color='#1F78B4').save('icon.png')" 2>/dev/null || echo "PIL not available, skipping icon"
+          python3 -c "from PIL import Image; Image.new('RGB', (1024, 1024), color='#1F78B4').save('presplash.png')" 2>/dev/null || echo "PIL not available, skipping presplash"
       
       - name: Build APK
         run: |
