@@ -5,25 +5,60 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Force Node.js 24 to remove the deprecation warning
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
       
-      - name: Install Buildozer
+      - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y openjdk-17-jdk
+          sudo apt install -y \
+            openjdk-17-jdk \
+            autoconf \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libtinfo5 \
+            cmake \
+            libffi-dev \
+            libssl-dev
+      
+      - name: Install Buildozer
+        run: |
+          pip install --upgrade pip
           pip install buildozer
+          pip install cython
       
       - name: Build APK
-        run: buildozer android debug
+        run: |
+          # Create dummy icon if missing
+          if [ ! -f icon.png ]; then
+            echo "Creating dummy icon..."
+            python3 -c "from PIL import Image; Image.new('RGB', (512, 512), color='#1F78B4').save('icon.png')" || true
+          fi
+          
+          if [ ! -f presplash.png ]; then
+            echo "Creating dummy presplash..."
+            python3 -c "from PIL import Image; Image.new('RGB', (1024, 1024), color='#1F78B4').save('presplash.png')" || true
+          fi
+          
+          # Build the APK with auto-yes
+          echo "y" | buildozer android debug
       
       - name: Upload APK
         uses: actions/upload-artifact@v4
